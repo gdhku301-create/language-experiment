@@ -16,94 +16,38 @@
       min-height: 100vh;
       padding: 20px;
     }
-    #screen { 
-      width: 100%; 
-      max-width: 700px; 
-      text-align: center; 
-    }
-    #stimulus { 
-      font-size: 56px; 
-      font-weight: bold; 
-      margin: 40px 0; 
-      min-height: 80px;
-    }
-    #fixation {
-      font-size: 56px;
-      margin: 40px 0;
-    }
-    #message { 
-      font-size: 20px; 
-      line-height: 1.8; 
-      text-align: left;
-    }
-    .key-guide { 
-      background: #f0f0f0; 
-      padding: 15px; 
-      border-radius: 8px; 
-      margin: 15px 0; 
-      font-size: 18px; 
-    }
-    #key-input {
-      position: fixed;
-      left: 50%;
-      bottom: 20px;
-      transform: translateX(-50%);
+    #screen { width: 100%; max-width: 700px; text-align: center; }
+    .stimulus { font-size: 56px; font-weight: bold; margin: 40px 0; min-height: 80px; }
+    .fixation { font-size: 56px; margin: 40px 0; }
+    .instructions { font-size: 20px; line-height: 1.8; text-align: left; }
+    .key-guide { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 18px; }
+    .next-btn { background: #007AFF; color: white; border: none; border-radius: 10px; padding: 15px 40px; font-size: 20px; cursor: pointer; margin-top: 20px; }
+    #name-input { font-size: 20px; padding: 10px; border: 2px solid #ccc; border-radius: 8px; width: 80%; margin: 15px 0; }
+    #progress { font-size: 14px; color: #999; margin-top: 10px; }
+    /* 자극 화면 전용 숨겨진 input */
+    .trial-input {
+      position: absolute;
+      opacity: 0;
       width: 1px;
       height: 1px;
-      opacity: 0;
-      border: none;
-      outline: none;
-    }
-    #focus-btn {
-      position: fixed;
-      left: 50%;
-      bottom: 10px;
-      transform: translateX(-50%);
-      background: #007AFF;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      display: none;
-    }
-    #progress {
-      font-size: 14px;
-      color: #999;
-      margin-top: 10px;
-    }
-    .next-btn {
-      background: #007AFF;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 15px 40px;
-      font-size: 20px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    #name-input {
-      font-size: 20px;
-      padding: 10px;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      width: 80%;
-      margin: 15px 0;
+      top: 0;
+      left: 0;
     }
   </style>
 </head>
 <body>
-
 <div id="screen"></div>
-<input id="key-input" type="text">
-<button id="focus-btn" onclick="refocus()">키보드 활성화 탭</button>
 
 <script>
+let participantId = '';
+let results = [];
+let currentPhase = 'name';
+let currentBlock = [];
+let currentTrialIndex = 0;
+let currentBlockName = '';
+let trialStartTime = 0;
+let order = Math.random() < 0.5 ? 'low_first' : 'high_first';
 
-// ============================================
-// 자극 목록
-// ============================================
 const practiceTrials = [
   {stimulus:'sheep',  correct:'f',language:'english',trial_type:'stay'},
   {stimulus:'egg',    correct:'j',language:'english',trial_type:'stay'},
@@ -199,53 +143,21 @@ const highFreqTrials = [
   {stimulus:'아이스크림',correct:'j',language:'korean',trial_type:'switch'},
 ];
 
-// ============================================
-// 실험 상태
-// ============================================
-let participantId = '';
-let results = [];
-let currentPhase = 'name'; // name, instructions, practiceInstr, practice, practiceDone, main, break, mainB, end
-let currentBlock = [];
-let currentTrialIndex = 0;
-let currentBlockName = '';
-let trialStartTime = 0;
-let waitingForKey = false;
-let order = Math.random() < 0.5 ? 'low_first' : 'high_first';
+const scr = document.getElementById('screen');
 
-const screen = document.getElementById('screen');
-const keyInput = document.getElementById('key-input');
-const focusBtn = document.getElementById('focus-btn');
-
-function refocus() {
-  keyInput.focus();
-  keyInput.value = '';
+function getInput() {
+  return document.getElementById('trial-input');
 }
 
-// 키 입력 이벤트
-keyInput.addEventListener('keydown', function(e) {
-  e.preventDefault();
-  if (!waitingForKey) return;
-  const key = e.key.toLowerCase();
-  handleKey(key);
-});
+function focusInput() {
+  const inp = getInput();
+  if (inp) inp.focus();
+}
 
-// 화면 터치시 포커스 유지
-document.addEventListener('touchend', function() {
-  setTimeout(refocus, 100);
-});
-
-document.addEventListener('click', function() {
-  setTimeout(refocus, 100);
-});
-
-// ============================================
-// 화면 렌더링
-// ============================================
 function showName() {
   currentPhase = 'name';
-  waitingForKey = false;
-  screen.innerHTML = `
-    <div id="message">
+  scr.innerHTML = `
+    <div class="instructions">
       <h2 style="text-align:center; margin-bottom:20px;">언어심리학 실험</h2>
       <p>이름 또는 학번을 입력해주세요:</p>
       <input id="name-input" type="text" placeholder="이름/학번 입력">
@@ -253,6 +165,7 @@ function showName() {
       <button class="next-btn" onclick="submitName()">다음</button>
     </div>
   `;
+  document.getElementById('name-input').focus();
 }
 
 function submitName() {
@@ -262,11 +175,16 @@ function submitName() {
   showInstructions();
 }
 
+function makeTrialInput(onKey) {
+  return `<input id="trial-input" class="trial-input" type="text" 
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">`;
+}
+
 function showInstructions() {
   currentPhase = 'instructions';
-  waitingForKey = true;
-  screen.innerHTML = `
-    <div id="message">
+  scr.innerHTML = `
+    ${makeTrialInput()}
+    <div class="instructions">
       <h2 style="text-align:center;">어휘 처리 속도 측정 실험</h2>
       <p style="margin-top:15px;">화면에 단어가 나타나면 해당 단어가 어느 범주에 속하는지 <strong>최대한 빠르고 정확하게</strong> 판단해주세요.</p>
       <div class="key-guide" style="margin-top:15px;">
@@ -276,14 +194,15 @@ function showInstructions() {
       <p style="color:#666; margin-top:15px;">아무 키나 눌러 계속하세요</p>
     </div>
   `;
-  refocus();
+  setupInput(() => showPracticeInstr());
+  setTimeout(focusInput, 100);
 }
 
 function showPracticeInstr() {
   currentPhase = 'practiceInstr';
-  waitingForKey = true;
-  screen.innerHTML = `
-    <div id="message">
+  scr.innerHTML = `
+    ${makeTrialInput()}
+    <div class="instructions">
       <h2 style="text-align:center;">연습 시행</h2>
       <p style="margin-top:15px;">본 실험 전 연습 시행을 진행합니다.</p>
       <div class="key-guide" style="margin-top:15px;">
@@ -293,14 +212,15 @@ function showPracticeInstr() {
       <p style="color:#666; margin-top:15px;">아무 키나 눌러 시작하세요</p>
     </div>
   `;
-  refocus();
+  setupInput(() => startBlock(practiceTrials, 'practice', 'practice'));
+  setTimeout(focusInput, 100);
 }
 
 function showPracticeDone() {
   currentPhase = 'practiceDone';
-  waitingForKey = true;
-  screen.innerHTML = `
-    <div id="message" style="text-align:center;">
+  scr.innerHTML = `
+    ${makeTrialInput()}
+    <div class="instructions" style="text-align:center;">
       <h2>연습이 끝났습니다.</h2>
       <p style="margin-top:15px;">이제 본 실험을 시작합니다.</p>
       <div class="key-guide" style="margin-top:15px;">
@@ -310,57 +230,30 @@ function showPracticeDone() {
       <p style="color:#666; margin-top:15px;">아무 키나 눌러 시작하세요</p>
     </div>
   `;
-  refocus();
+  const firstBlock = order === 'low_first' ? lowFreqTrials : highFreqTrials;
+  const firstName = order === 'low_first' ? 'low_frequency' : 'high_frequency';
+  setupInput(() => startBlock(firstBlock, firstName, 'mainA'));
+  setTimeout(focusInput, 100);
 }
 
 function showBreak() {
   currentPhase = 'break';
-  waitingForKey = true;
-  screen.innerHTML = `
-    <div id="message" style="text-align:center;">
+  scr.innerHTML = `
+    ${makeTrialInput()}
+    <div class="instructions" style="text-align:center;">
       <h2>첫 번째 블록이 끝났습니다.</h2>
       <p style="margin-top:15px;">충분히 준비되셨으면 아무 키나 눌러 계속해주세요.</p>
     </div>
   `;
-  refocus();
-}
-
-function showFixation() {
-  waitingForKey = false;
-  screen.innerHTML = `<div id="fixation">+</div>`;
-  setTimeout(showTrial, 500);
-}
-
-function showTrial() {
-  if (currentTrialIndex >= currentBlock.length) {
-    // 블록 끝
-    if (currentPhase === 'practice') {
-      showPracticeDone();
-    } else if (currentPhase === 'mainA') {
-      showBreak();
-    } else if (currentPhase === 'mainB') {
-      showEnd();
-    }
-    return;
-  }
-
-  const trial = currentBlock[currentTrialIndex];
-  const total = currentBlock.length;
-  waitingForKey = true;
-  trialStartTime = performance.now();
-
-  screen.innerHTML = `
-    <div id="stimulus">${trial.stimulus}</div>
-    <div id="progress">${currentTrialIndex + 1} / ${total}</div>
-  `;
-  refocus();
+  const secondBlock = order === 'low_first' ? highFreqTrials : lowFreqTrials;
+  const secondName = order === 'low_first' ? 'high_frequency' : 'low_frequency';
+  setupInput(() => startBlock(secondBlock, secondName, 'mainB'));
+  setTimeout(focusInput, 100);
 }
 
 function showEnd() {
-  currentPhase = 'end';
-  waitingForKey = false;
-  screen.innerHTML = `
-    <div id="message" style="text-align:center;">
+  scr.innerHTML = `
+    <div class="instructions" style="text-align:center;">
       <h2>실험이 끝났습니다.</h2>
       <p style="margin-top:15px;">참여해주셔서 감사합니다.</p>
       <button class="next-btn" onclick="saveData()" style="margin-top:20px;">데이터 저장</button>
@@ -373,67 +266,79 @@ function saveData() {
   const rows = results.map(r =>
     `${r.pid},${r.order},${r.block},${r.trial_index},${r.stimulus},${r.language},${r.trial_type},${r.response},${r.correct},${r.rt}`
   ).join('\n');
-  const csv = header + rows;
-  const blob = new Blob([csv], {type: 'text/csv'});
+  const blob = new Blob([header + rows], {type: 'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = `data_${participantId}.csv`;
   a.click();
-  document.getElementById('message').innerHTML += '<p style="color:green; margin-top:10px;">저장 완료!</p>';
 }
 
-// ============================================
-// 키 입력 처리
-// ============================================
-function handleKey(key) {
-  if (currentPhase === 'instructions') {
-    showPracticeInstr();
-    return;
-  }
-  if (currentPhase === 'practiceInstr') {
-    currentBlock = practiceTrials;
-    currentBlockName = 'practice';
-    currentTrialIndex = 0;
-    currentPhase = 'practice';
-    showFixation();
-    return;
-  }
-  if (currentPhase === 'practiceDone') {
-    // 본 실험 시작
-    if (order === 'low_first') {
-      currentBlock = lowFreqTrials;
-      currentBlockName = 'low_frequency';
+function setupInput(anyKeyCallback) {
+  const inp = getInput();
+  if (!inp) return;
+  inp.addEventListener('keydown', function handler(e) {
+    e.preventDefault();
+    inp.removeEventListener('keydown', handler);
+    anyKeyCallback();
+  });
+}
+
+function startBlock(trials, blockName, phase) {
+  currentBlock = trials;
+  currentBlockName = blockName;
+  currentTrialIndex = 0;
+  currentPhase = phase;
+  showFixation();
+}
+
+function showFixation() {
+  scr.innerHTML = `<div class="fixation">+</div>`;
+  setTimeout(showTrial, 500);
+}
+
+function showTrial() {
+  if (currentTrialIndex >= currentBlock.length) {
+    if (currentPhase === 'practice') {
+      showPracticeDone();
+    } else if (currentPhase === 'mainA') {
+      showBreak();
     } else {
-      currentBlock = highFreqTrials;
-      currentBlockName = 'high_frequency';
+      showEnd();
     }
-    currentTrialIndex = 0;
-    currentPhase = 'mainA';
-    showFixation();
-    return;
-  }
-  if (currentPhase === 'break') {
-    // 두 번째 블록
-    if (order === 'low_first') {
-      currentBlock = highFreqTrials;
-      currentBlockName = 'high_frequency';
-    } else {
-      currentBlock = lowFreqTrials;
-      currentBlockName = 'low_frequency';
-    }
-    currentTrialIndex = 0;
-    currentPhase = 'mainB';
-    showFixation();
     return;
   }
 
-  // 자극 반응
-  if ((currentPhase === 'practice' || currentPhase === 'mainA' || currentPhase === 'mainB') && waitingForKey) {
-    if (key !== 'f' && key !== 'j') return;
+  const trial = currentBlock[currentTrialIndex];
+  const total = currentBlock.length;
+  trialStartTime = performance.now();
+
+  scr.innerHTML = `
+    <input id="trial-input" class="trial-input" type="text"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="stimulus">${trial.stimulus}</div>
+    <div id="progress">${currentTrialIndex + 1} / ${total}</div>
+  `;
+
+  const inp = document.getElementById('trial-input');
+  
+  // 즉시 포커스
+  inp.focus();
+  
+  // 혹시 포커스 안 되면 재시도
+  setTimeout(() => { if (inp) inp.focus(); }, 50);
+  setTimeout(() => { if (inp) inp.focus(); }, 150);
+
+  inp.addEventListener('keydown', function handler(e) {
+    e.preventDefault();
+    const key = e.key.toLowerCase();
+    if (key !== 'f' && key !== 'j') {
+      // f/j 아닌 키는 무시하되 포커스 유지
+      inp.focus();
+      return;
+    }
+    inp.removeEventListener('keydown', handler);
     const rt = Math.round(performance.now() - trialStartTime);
-    const trial = currentBlock[currentTrialIndex];
-    const correct = key === trial.correct;
     results.push({
       pid: participantId,
       order: order,
@@ -443,16 +348,22 @@ function handleKey(key) {
       language: trial.language,
       trial_type: trial.trial_type,
       response: key,
-      correct: correct ? 1 : 0,
+      correct: key === trial.correct ? 1 : 0,
       rt: rt,
     });
     currentTrialIndex++;
-    waitingForKey = false;
     showFixation();
-  }
+  });
 }
 
-// 시작
+// 화면 터치시 포커스 복구
+document.addEventListener('touchend', function() {
+  setTimeout(() => {
+    const inp = getInput();
+    if (inp) inp.focus();
+  }, 50);
+});
+
 showName();
 </script>
 </body>
