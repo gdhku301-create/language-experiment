@@ -4,293 +4,456 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>언어심리학 실험</title>
-  <script src="https://unpkg.com/jspsych@7.3.4"></script>
-  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
-  <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.3"></script>
-  <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css">
   <style>
-    body { background-color: #ffffff; }
-    .jspsych-content { max-width: 800px; }
-    .stimulus { font-size: 52px; font-weight: bold; margin: 40px 0; }
-    .fixation { font-size: 52px; }
-    .instructions { font-size: 20px; line-height: 1.8; text-align: left; }
-    .key-guide { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 18px; }
-    /* 숨겨진 input - 포커스 유지용 */
-    #focus-trap {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: sans-serif; 
+      background: #fff; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh;
+      padding: 20px;
+    }
+    #screen { 
+      width: 100%; 
+      max-width: 700px; 
+      text-align: center; 
+    }
+    #stimulus { 
+      font-size: 56px; 
+      font-weight: bold; 
+      margin: 40px 0; 
+      min-height: 80px;
+    }
+    #fixation {
+      font-size: 56px;
+      margin: 40px 0;
+    }
+    #message { 
+      font-size: 20px; 
+      line-height: 1.8; 
+      text-align: left;
+    }
+    .key-guide { 
+      background: #f0f0f0; 
+      padding: 15px; 
+      border-radius: 8px; 
+      margin: 15px 0; 
+      font-size: 18px; 
+    }
+    #key-input {
       position: fixed;
-      opacity: 0;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
       width: 1px;
       height: 1px;
-      top: 0;
-      left: 0;
+      opacity: 0;
       border: none;
       outline: none;
+    }
+    #focus-btn {
+      position: fixed;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      background: #007AFF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      display: none;
+    }
+    #progress {
+      font-size: 14px;
+      color: #999;
+      margin-top: 10px;
+    }
+    .next-btn {
+      background: #007AFF;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 15px 40px;
+      font-size: 20px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    #name-input {
+      font-size: 20px;
+      padding: 10px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      width: 80%;
+      margin: 15px 0;
     }
   </style>
 </head>
 <body>
-<!-- 아이패드 키보드 포커스 유지용 숨겨진 input -->
-<input id="focus-trap" type="text" readonly>
+
+<div id="screen"></div>
+<input id="key-input" type="text">
+<button id="focus-btn" onclick="refocus()">키보드 활성화 탭</button>
 
 <script>
 
-// 포커스 강제 유지 함수
-function keepFocus() {
-  const trap = document.getElementById('focus-trap');
-  if (trap) {
-    trap.focus();
-  }
-}
-
-// 주기적으로 포커스 유지
-setInterval(keepFocus, 100);
-document.addEventListener('click', function() {
-  setTimeout(keepFocus, 50);
-});
-
+// ============================================
+// 자극 목록
+// ============================================
 const practiceTrials = [
-  {stimulus:'sheep',  correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'egg',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'cow',    correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'하마',   correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'honey',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'샌드위치',correct_key:'j',category:'food', language:'korean', trial_type:'switch'},
+  {stimulus:'sheep',  correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'egg',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'cow',    correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'하마',   correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'honey',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'샌드위치',correct:'j',language:'korean', trial_type:'switch'},
 ];
 
 const lowFreqTrials = [
-  {stimulus:'elephant',correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'bread',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'giraffe', correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'cake',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'penguin', correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'사자',    correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'candy',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'parrot',  correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'carrot',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'dolphin', correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'김밥',    correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'cheese',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'hamster', correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'cookie',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'camel',   correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'거북이',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'lemon',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'koala',   correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'melon',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'bison',   correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'떡볶이',  correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'milk',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'owl',     correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'pasta',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'swan',    correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'악어',    correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'peach',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'bee',     correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'potato',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'ant',     correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'비빔밥',  correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'salad',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'butterfly',correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'soup',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'cat',     correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'기러기',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'corn',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'rabbit',  correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'된장찌개',correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'jam',     correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
+  {stimulus:'elephant',correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'bread',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'giraffe', correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'cake',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'penguin', correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'사자',    correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'candy',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'parrot',  correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'carrot',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'dolphin', correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'김밥',    correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'cheese',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'hamster', correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'cookie',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'camel',   correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'거북이',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'lemon',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'koala',   correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'melon',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'bison',   correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'떡볶이',  correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'milk',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'owl',     correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'pasta',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'swan',    correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'악어',    correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'peach',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'bee',     correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'potato',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'ant',     correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'비빔밥',  correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'salad',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'butterfly',correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'soup',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'cat',     correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'기러기',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'corn',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'rabbit',  correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'된장찌개',correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'jam',     correct:'j',language:'english',trial_type:'stay'},
 ];
 
 const highFreqTrials = [
-  {stimulus:'dog',     correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'mango',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'eagle',   correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'두더지',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'orange',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'삼겹살',  correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'bear',    correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'고슴도치',correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'sugar',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'치킨',    correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'deer',    correct_key:'f',category:'animal',language:'english',trial_type:'stay'},
-  {stimulus:'치타',    correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'tomato',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'국수',    correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'waffle',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'표범',    correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'yogurt',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'고래',    correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'butter',  correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'밥',      correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'fig',     correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'원숭이',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'pear',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'잡채',    correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'plum',    correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'다람쥐',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'pie',     correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'개구리',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'toast',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'순대',    correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'bagel',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'두루미',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'donut',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'갈비',    correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'chocolate',correct_key:'j',category:'food', language:'english',trial_type:'stay'},
-  {stimulus:'코뿔소',  correct_key:'f',category:'animal',language:'korean', trial_type:'switch'},
-  {stimulus:'pizza',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'불고기',  correct_key:'j',category:'food',  language:'korean', trial_type:'switch'},
-  {stimulus:'apple',   correct_key:'j',category:'food',  language:'english',trial_type:'stay'},
-  {stimulus:'아이스크림',correct_key:'j',category:'food',language:'korean', trial_type:'switch'},
+  {stimulus:'dog',     correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'mango',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'eagle',   correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'두더지',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'orange',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'삼겹살',  correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'bear',    correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'고슴도치',correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'sugar',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'치킨',    correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'deer',    correct:'f',language:'english',trial_type:'stay'},
+  {stimulus:'치타',    correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'tomato',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'국수',    correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'waffle',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'표범',    correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'yogurt',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'고래',    correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'butter',  correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'밥',      correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'fig',     correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'원숭이',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'pear',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'잡채',    correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'plum',    correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'다람쥐',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'pie',     correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'개구리',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'toast',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'순대',    correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'bagel',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'두루미',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'donut',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'갈비',    correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'chocolate',correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'코뿔소',  correct:'f',language:'korean', trial_type:'switch'},
+  {stimulus:'pizza',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'불고기',  correct:'j',language:'korean', trial_type:'switch'},
+  {stimulus:'apple',   correct:'j',language:'english',trial_type:'stay'},
+  {stimulus:'아이스크림',correct:'j',language:'korean',trial_type:'switch'},
 ];
 
-const jsPsych = initJsPsych({
-  on_finish: function() {
-    const data = jsPsych.data.get().filter({task: 'trial'}).csv();
-    const blob = new Blob([data], {type: 'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const pid = jsPsych.data.get().values()[0]?.participant_id || 'participant';
-    a.download = `data_${pid}.csv`;
-    a.click();
-    document.body.innerHTML = '<div style="text-align:center;margin-top:200px;font-size:24px;font-family:sans-serif;">실험이 끝났습니다.<br>참여해주셔서 감사합니다.</div>';
-  }
+// ============================================
+// 실험 상태
+// ============================================
+let participantId = '';
+let results = [];
+let currentPhase = 'name'; // name, instructions, practiceInstr, practice, practiceDone, main, break, mainB, end
+let currentBlock = [];
+let currentTrialIndex = 0;
+let currentBlockName = '';
+let trialStartTime = 0;
+let waitingForKey = false;
+let order = Math.random() < 0.5 ? 'low_first' : 'high_first';
+
+const screen = document.getElementById('screen');
+const keyInput = document.getElementById('key-input');
+const focusBtn = document.getElementById('focus-btn');
+
+function refocus() {
+  keyInput.focus();
+  keyInput.value = '';
+}
+
+// 키 입력 이벤트
+keyInput.addEventListener('keydown', function(e) {
+  e.preventDefault();
+  if (!waitingForKey) return;
+  const key = e.key.toLowerCase();
+  handleKey(key);
 });
 
-const participantId = {
-  type: jsPsychSurveyText,
-  questions: [{prompt: '이름 또는 학번을 입력해주세요:', name: 'participant_id', required: true}],
-  on_finish: function(data) {
-    jsPsych.data.addProperties({participant_id: data.response.participant_id});
-    keepFocus();
-  }
-};
+// 화면 터치시 포커스 유지
+document.addEventListener('touchend', function() {
+  setTimeout(refocus, 100);
+});
 
-const instructions = {
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div class="instructions">
+document.addEventListener('click', function() {
+  setTimeout(refocus, 100);
+});
+
+// ============================================
+// 화면 렌더링
+// ============================================
+function showName() {
+  currentPhase = 'name';
+  waitingForKey = false;
+  screen.innerHTML = `
+    <div id="message">
+      <h2 style="text-align:center; margin-bottom:20px;">언어심리학 실험</h2>
+      <p>이름 또는 학번을 입력해주세요:</p>
+      <input id="name-input" type="text" placeholder="이름/학번 입력">
+      <br>
+      <button class="next-btn" onclick="submitName()">다음</button>
+    </div>
+  `;
+}
+
+function submitName() {
+  const val = document.getElementById('name-input').value.trim();
+  if (!val) { alert('이름을 입력해주세요'); return; }
+  participantId = val;
+  showInstructions();
+}
+
+function showInstructions() {
+  currentPhase = 'instructions';
+  waitingForKey = true;
+  screen.innerHTML = `
+    <div id="message">
       <h2 style="text-align:center;">어휘 처리 속도 측정 실험</h2>
-      <p>화면에 단어가 나타나면 해당 단어가 어느 범주에 속하는지 <strong>최대한 빠르고 정확하게</strong> 판단해주세요.</p>
-      <div class="key-guide">
+      <p style="margin-top:15px;">화면에 단어가 나타나면 해당 단어가 어느 범주에 속하는지 <strong>최대한 빠르고 정확하게</strong> 판단해주세요.</p>
+      <div class="key-guide" style="margin-top:15px;">
         🐾 <strong>동물</strong>이면 → <strong>F 키</strong><br>
         🍎 <strong>음식</strong>이면 → <strong>J 키</strong>
       </div>
-      <p>틀려도 괜찮으니 최대한 빠르게 반응해주세요.</p>
-      <p style="text-align:center;color:#666;">아무 키나 눌러 계속하세요</p>
+      <p style="color:#666; margin-top:15px;">아무 키나 눌러 계속하세요</p>
     </div>
-  `,
-  choices: "ALL_KEYS",
-  on_finish: keepFocus,
-};
+  `;
+  refocus();
+}
 
-const practiceInstr = {
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div class="instructions">
+function showPracticeInstr() {
+  currentPhase = 'practiceInstr';
+  waitingForKey = true;
+  screen.innerHTML = `
+    <div id="message">
       <h2 style="text-align:center;">연습 시행</h2>
-      <p>본 실험 전 연습 시행을 진행합니다.</p>
-      <div class="key-guide">
+      <p style="margin-top:15px;">본 실험 전 연습 시행을 진행합니다.</p>
+      <div class="key-guide" style="margin-top:15px;">
         🐾 <strong>동물</strong>이면 → <strong>F 키</strong><br>
         🍎 <strong>음식</strong>이면 → <strong>J 키</strong>
       </div>
-      <p style="text-align:center;color:#666;">아무 키나 눌러 시작하세요</p>
+      <p style="color:#666; margin-top:15px;">아무 키나 눌러 시작하세요</p>
     </div>
-  `,
-  choices: "ALL_KEYS",
-  on_finish: keepFocus,
-};
+  `;
+  refocus();
+}
 
-const practiceDone = {
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div class="instructions" style="text-align:center;">
+function showPracticeDone() {
+  currentPhase = 'practiceDone';
+  waitingForKey = true;
+  screen.innerHTML = `
+    <div id="message" style="text-align:center;">
       <h2>연습이 끝났습니다.</h2>
-      <p>이제 본 실험을 시작합니다.</p>
-      <div class="key-guide">
+      <p style="margin-top:15px;">이제 본 실험을 시작합니다.</p>
+      <div class="key-guide" style="margin-top:15px;">
         🐾 <strong>동물</strong>이면 → <strong>F 키</strong><br>
         🍎 <strong>음식</strong>이면 → <strong>J 키</strong>
       </div>
-      <p style="color:#666;">아무 키나 눌러 시작하세요</p>
+      <p style="color:#666; margin-top:15px;">아무 키나 눌러 시작하세요</p>
     </div>
-  `,
-  choices: "ALL_KEYS",
-  on_finish: keepFocus,
-};
+  `;
+  refocus();
+}
 
-const breakScreen = {
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div class="instructions" style="text-align:center;">
+function showBreak() {
+  currentPhase = 'break';
+  waitingForKey = true;
+  screen.innerHTML = `
+    <div id="message" style="text-align:center;">
       <h2>첫 번째 블록이 끝났습니다.</h2>
-      <p>충분히 준비되셨으면 아무 키나 눌러 계속해주세요.</p>
+      <p style="margin-top:15px;">충분히 준비되셨으면 아무 키나 눌러 계속해주세요.</p>
     </div>
-  `,
-  choices: "ALL_KEYS",
-  on_finish: keepFocus,
-};
-
-function makeFixation() {
-  return {
-    type: jsPsychHtmlKeyboardResponse,
-    stimulus: '<div class="fixation">+</div>',
-    choices: "NO_KEYS",
-    trial_duration: 500,
-    on_finish: keepFocus,
-  };
+  `;
+  refocus();
 }
 
-function makeTrial(trialData, blockName) {
-  return {
-    type: jsPsychHtmlKeyboardResponse,
-    stimulus: `<div class="stimulus">${trialData.stimulus}</div>`,
-    choices: ['f', 'j'],
-    data: {
-      task: 'trial',
-      stimulus: trialData.stimulus,
-      correct_key: trialData.correct_key,
-      category: trialData.category,
-      language: trialData.language,
-      trial_type: trialData.trial_type,
-      block: blockName,
-    },
-    on_finish: function(data) {
-      data.correct = data.response === data.correct_key;
-      keepFocus();
+function showFixation() {
+  waitingForKey = false;
+  screen.innerHTML = `<div id="fixation">+</div>`;
+  setTimeout(showTrial, 500);
+}
+
+function showTrial() {
+  if (currentTrialIndex >= currentBlock.length) {
+    // 블록 끝
+    if (currentPhase === 'practice') {
+      showPracticeDone();
+    } else if (currentPhase === 'mainA') {
+      showBreak();
+    } else if (currentPhase === 'mainB') {
+      showEnd();
     }
-  };
-}
-
-function makeBlock(trials, blockName) {
-  const block = [];
-  for (const t of trials) {
-    block.push(makeFixation());
-    block.push(makeTrial(t, blockName));
+    return;
   }
-  return block;
+
+  const trial = currentBlock[currentTrialIndex];
+  const total = currentBlock.length;
+  waitingForKey = true;
+  trialStartTime = performance.now();
+
+  screen.innerHTML = `
+    <div id="stimulus">${trial.stimulus}</div>
+    <div id="progress">${currentTrialIndex + 1} / ${total}</div>
+  `;
+  refocus();
 }
 
-const counterbalanceOrder = Math.random() < 0.5 ? 'low_first' : 'high_first';
-jsPsych.data.addProperties({order: counterbalanceOrder});
-
-const timeline = [];
-timeline.push(participantId);
-timeline.push(instructions);
-timeline.push(practiceInstr);
-timeline.push(...makeBlock(practiceTrials, 'practice'));
-timeline.push(practiceDone);
-
-if (counterbalanceOrder === 'low_first') {
-  timeline.push(...makeBlock(lowFreqTrials, 'low_frequency'));
-  timeline.push(breakScreen);
-  timeline.push(...makeBlock(highFreqTrials, 'high_frequency'));
-} else {
-  timeline.push(...makeBlock(highFreqTrials, 'high_frequency'));
-  timeline.push(breakScreen);
-  timeline.push(...makeBlock(lowFreqTrials, 'low_frequency'));
+function showEnd() {
+  currentPhase = 'end';
+  waitingForKey = false;
+  screen.innerHTML = `
+    <div id="message" style="text-align:center;">
+      <h2>실험이 끝났습니다.</h2>
+      <p style="margin-top:15px;">참여해주셔서 감사합니다.</p>
+      <button class="next-btn" onclick="saveData()" style="margin-top:20px;">데이터 저장</button>
+    </div>
+  `;
 }
 
-jsPsych.run(timeline);
+function saveData() {
+  const header = 'participant_id,order,block,trial_index,stimulus,language,trial_type,response,correct,rt\n';
+  const rows = results.map(r =>
+    `${r.pid},${r.order},${r.block},${r.trial_index},${r.stimulus},${r.language},${r.trial_type},${r.response},${r.correct},${r.rt}`
+  ).join('\n');
+  const csv = header + rows;
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `data_${participantId}.csv`;
+  a.click();
+  document.getElementById('message').innerHTML += '<p style="color:green; margin-top:10px;">저장 완료!</p>';
+}
+
+// ============================================
+// 키 입력 처리
+// ============================================
+function handleKey(key) {
+  if (currentPhase === 'instructions') {
+    showPracticeInstr();
+    return;
+  }
+  if (currentPhase === 'practiceInstr') {
+    currentBlock = practiceTrials;
+    currentBlockName = 'practice';
+    currentTrialIndex = 0;
+    currentPhase = 'practice';
+    showFixation();
+    return;
+  }
+  if (currentPhase === 'practiceDone') {
+    // 본 실험 시작
+    if (order === 'low_first') {
+      currentBlock = lowFreqTrials;
+      currentBlockName = 'low_frequency';
+    } else {
+      currentBlock = highFreqTrials;
+      currentBlockName = 'high_frequency';
+    }
+    currentTrialIndex = 0;
+    currentPhase = 'mainA';
+    showFixation();
+    return;
+  }
+  if (currentPhase === 'break') {
+    // 두 번째 블록
+    if (order === 'low_first') {
+      currentBlock = highFreqTrials;
+      currentBlockName = 'high_frequency';
+    } else {
+      currentBlock = lowFreqTrials;
+      currentBlockName = 'low_frequency';
+    }
+    currentTrialIndex = 0;
+    currentPhase = 'mainB';
+    showFixation();
+    return;
+  }
+
+  // 자극 반응
+  if ((currentPhase === 'practice' || currentPhase === 'mainA' || currentPhase === 'mainB') && waitingForKey) {
+    if (key !== 'f' && key !== 'j') return;
+    const rt = Math.round(performance.now() - trialStartTime);
+    const trial = currentBlock[currentTrialIndex];
+    const correct = key === trial.correct;
+    results.push({
+      pid: participantId,
+      order: order,
+      block: currentBlockName,
+      trial_index: currentTrialIndex,
+      stimulus: trial.stimulus,
+      language: trial.language,
+      trial_type: trial.trial_type,
+      response: key,
+      correct: correct ? 1 : 0,
+      rt: rt,
+    });
+    currentTrialIndex++;
+    waitingForKey = false;
+    showFixation();
+  }
+}
+
+// 시작
+showName();
 </script>
 </body>
 </html>
